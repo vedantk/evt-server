@@ -1,0 +1,72 @@
+evt-server - a simple, fast server framework for C
+
+Overview
+------------------------------------------------------------------------
+evt-server simplifies writing network servers. It uses libevent to
+watch for incoming connections, which can then be handled sequentially
+or dispatched to multiple processors. The design is based on the server
+in memcached, with a few beneficial modifications.
+
+The goal is to make it unnecessary for people to think about pthreads,
+libevent, or setting up servers with the painful BSD sockets API.
+
+
+Usage
+------------------------------------------------------------------------
+Call evt_server_init() to set up the library (socktype may be
+SOCK_STREAM for TCP, or SOCK_DGRAM for UDP). Write a callback that
+handles incoming connections. You can use the helper functions listed
+in evt-server.h as well as the ones in evt-core.h to get this done.
+
+If you want to use threads to process accepted connections, separate
+the logic from your first callback into two parts. The first accepts
+incoming connections and calls evt_thread_dispatch() when it's done.
+The second takes accepted connections and processes them (i.e does the
+'real' I/O between the client and server). Register the first callback
+with a call to evt_server_start(), and register the second one by
+calling evt_server_threads(). At this point the server is running.
+
+If you don't want to use threads, just write one callback that handles
+everything sequentially and call evt_server_start().
+
+Call evt_server_stop() if you want to stop the server and free the
+internal data structures.
+
+
+Benefits
+------------------------------------------------------------------------
+See test/evt_test.c. That's a complete, multithreaded server in
+basically 15 lines of clear, simple C. On my laptop, it can handle a
+flood of 10,000 connections without much difficulty (averaging 1,981
+microseconds per 1KB transaction).
+
+
+Bugs (comments and patches appreciated!)
+------------------------------------------------------------------------
+1. Windows hasn't been tested, though efforts have been made to
+preserve portability.
+2. evt-server does not serve you breakfast in bed, nor does it make you
+a better AssaultCube player.
+
+
+License
+------------------------------------------------------------------------
+Copyright (c) 2010 Vedant Kumar <vminch@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.  THE SOFTWARE IS
+PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
