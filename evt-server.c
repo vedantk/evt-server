@@ -19,16 +19,16 @@ extern "C" {
 
 static struct {
 	int port;
-	int socktype;				/* SOCK_STREAM or SOCK_DGRAM */
-	socklen_t socksize;			/* Network sockaddr size. */
-	evt_callback handler;		/* Handles incoming connections. */
-	struct addrinfo* ai;		/* Server information. */
+	int socktype;		/* SOCK_STREAM or SOCK_DGRAM */
+	socklen_t socksize;	/* Network sockaddr size. */
+	evt_callback handler;	/* Handles incoming connections. */
+	struct addrinfo* ai;	/* Server information. */
 	pthread_t server;
 	sockfd_t serv_sock;
 } serv;
 
 typedef struct client {
-	sockfd_t conn;				/* -1: shutdown request. */
+	sockfd_t conn;		/* -1: shutdown request. */
 	short evt;
 	void* arg;
 	struct client* next;
@@ -43,10 +43,10 @@ typedef struct {
 } cli_queue;
 
 static struct {
-	int nr;						/* Number of active threads, or -1. */
-	evt_callback slave;			/* Handles accepted connections. */
-	int last_sched;				/* Round-robin scheduler. */
-	cli_queue* conns;			/* Array of worker queues. */
+	int nr;			/* Number of active threads, or -1. */
+	evt_callback slave;	/* Handles accepted connections. */
+	int last_sched;		/* Round-robin scheduler. */
+	cli_queue* conns;	/* Array of worker queues. */
 } pool;
 
 static const struct timeval min_time = {0, THREAD_POLL_TIME};
@@ -76,14 +76,14 @@ int     evt_server_init(int port, int socktype)
 	return 0;
 }
 
-int		evt_server_start(evt_callback cb, void* arg)
+int	evt_server_start(evt_callback cb, void* arg)
 {
 	event_init();
 	serv.handler = cb;
 	return pthread_create(&serv.server, NULL, server_worker, arg);
 }
 
-int		evt_server_threads(evt_callback tcb, int nr)
+int	evt_server_threads(evt_callback tcb, int nr)
 {
 	if (pool.nr != -1) return -1;
 	pool.nr = nr;
@@ -97,7 +97,7 @@ int		evt_server_threads(evt_callback tcb, int nr)
 	int ret;
 	for (i = 0; i < nr; ++i) {
 		ret = pthread_create(&pool.conns[i].tid, NULL,
-							 dispatch_worker, &pool.conns[i]);
+				     dispatch_worker, &pool.conns[i]);
 		if (ret != 0) {
 			pool.nr = 0;
 			free(pool.conns);
@@ -125,7 +125,7 @@ void    evt_server_stop()
 	freeaddrinfo(serv.ai);
 }
 
-int		evt_tcp(sockfd_t fd, struct sockaddr* sock)
+int	evt_tcp(sockfd_t fd, struct sockaddr* sock)
 {
 	sockfd_t conn = accept(fd, sock, &serv.socksize);
 	if (conn == -1) {
@@ -134,8 +134,8 @@ int		evt_tcp(sockfd_t fd, struct sockaddr* sock)
 	return conn;
 }
 
-int		evt_udp(sockfd_t fd, char* buf, int size, int flags,
-				struct sockaddr* sock)
+int	evt_udp(sockfd_t fd, char* buf, int size, int flags,
+		struct sockaddr* sock)
 {
 	int len = recvfrom(fd, buf, size, flags, sock, &serv.socksize);
 	if (len == -1) {
@@ -190,12 +190,13 @@ struct addrinfo* getnetinfo(const char* host, int port, int socktype)
 void    print_addrinfo(struct addrinfo* ai)
 {
 	printf ("ai_flags; %d\n"
-			"ai_family; %d\n"
-			"ai_socktype; %d\n"
-			"ai_protocol; %d\n"
-			"ai_addrlen; %u\n"
-			"ai_canonname; %s\n", ai->ai_flags, ai->ai_family,
-	ai->ai_socktype, ai->ai_protocol, ai->ai_addrlen, ai->ai_canonname);
+		"ai_family; %d\n"
+		"ai_socktype; %d\n"
+		"ai_protocol; %d\n"
+		"ai_addrlen; %u\n"
+		"ai_canonname; %s\n"
+	, ai->ai_flags, ai->ai_family, ai->ai_socktype,
+	ai->ai_protocol, ai->ai_addrlen, ai->ai_canonname);
 }
 
 int     get_sockaddr_size()
@@ -211,16 +212,16 @@ struct sockaddr* new_sockaddr()
 static const int IP4_SOCKLEN = sizeof(struct sockaddr_in) - 8;
 static const int IP6_SOCKLEN = sizeof(struct sockaddr_in6);
 
-int		copy_addr_into_buf(struct sockaddr* src, char* dest, int size)
+int	copy_addr_into_buf(struct sockaddr* src, char* dest, int size)
 {
 	int copylen = (serv.ai->ai_family == AF_INET)
-				? IP4_SOCKLEN : IP6_SOCKLEN;
+		      ? IP4_SOCKLEN : IP6_SOCKLEN;
 	if (size < copylen) return 0;
 	memcpy(dest, src, copylen);
 	return copylen;
 }
 
-int		copy_buf_into_addr(char* src, struct sockaddr* dest, int size)
+int	copy_buf_into_addr(char* src, struct sockaddr* dest, int size)
 {
 	switch (serv.ai->ai_family) {
 		case AF_INET:
@@ -244,7 +245,8 @@ int get_conn_to_host(const char* host, int port, int socktype)
 	sockfd_t sock;
 	struct addrinfo *rp, *result = getnetinfo(host, port, socktype);
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
-		sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		sock = socket(rp->ai_family, rp->ai_socktype,
+			      rp->ai_protocol);
 		if (sock >= 0) break;
 	}
 
@@ -266,10 +268,10 @@ int get_conn_to_host(const char* host, int port, int socktype)
 }
 
 int get_conn_to_addr(struct sockaddr* addr, int port, int socktype)
-/* Convert "port" to network-ordering before calling this function. */
+/* Convert "port" to network-order before calling this function. */
 {
 	int ai_protocol = (socktype == SOCK_STREAM)
-					? IPPROTO_TCP : IPPROTO_UDP;
+			  ? IPPROTO_TCP : IPPROTO_UDP;
 	sockfd_t fd = socket(serv.ai->ai_family, socktype, ai_protocol);
 	if (fd < 0) {
 		return sys_error("socket");
@@ -290,12 +292,12 @@ int     get_nr_cpus()
 #endif
 }
 
-int		set_nonblocking(sockfd_t fd)
+int	set_nonblocking(sockfd_t fd)
 {
 	int flags;
 	if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
 		flags = 0;
-    }
+	}
 
 	int ret = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 	if (ret < 0) {
@@ -315,7 +317,7 @@ void	print_buffer(const char* name, void* buf, int size)
 	puts("");
 }
 
-int		sys_error(const char* msg)
+int	sys_error(const char* msg)
 {
 #ifdef _WIN32
 	fprintf(stderr, "sys_error (%s): %s\n", WSAGetLastError(), msg);
@@ -330,11 +332,14 @@ void*	server_worker(void* arg)
 	sockfd_t sock = 0;
 	struct addrinfo *rp;
 	for (rp = serv.ai; rp != NULL; rp = rp->ai_next) {
-		sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		sock = socket(rp->ai_family, rp->ai_socktype,
+			      rp->ai_protocol);
 		if (sock < 0) continue;
 
 		int ret = 1;
-		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &ret, 4) != 0) {
+		int err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+				     &ret, 4);
+		if (err != 0) {
 			sys_error("setsockopt: SO_REUSEADDR");
 		}
 
@@ -392,7 +397,8 @@ void*	dispatch_worker(void* arg)
 				pthread_mutex_destroy(&q->lock);
 				return NULL;
 			} else {
-				pool.slave(cli->conn, cli->evt, cli->arg);
+				pool.slave(cli->conn, cli->evt,
+					   cli->arg);
 				free(cli);
 			}
 		} else {
@@ -420,7 +426,7 @@ void	cq_push_back(cli_queue* q, sockfd_t conn, short evt, void* arg)
 	if (NULL == q->head && NULL == q->tail) {
 		q->head = q->tail = p;
 	} else if (NULL == q->head || NULL == q->tail) {
-		sys_error("Encountered internal memory corruption. Aborting.");
+		sys_error("Encountered internal memory corruption.");
 		abort();
 	} else {
 		q->tail->next = p;
