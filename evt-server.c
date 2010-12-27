@@ -206,37 +206,67 @@ int     get_sockaddr_size()
 
 struct sockaddr* new_sockaddr()
 {
-	return (struct sockaddr*) calloc(1, serv.socksize);
+	struct sockaddr* sa = calloc(1, serv.socksize);
+	sa->sa_family = serv.ai->ai_family;
+	return sa;
 }
 
-static const int IP4_SOCKLEN = sizeof(struct sockaddr_in) - 8;
+typedef struct {
+	short sin_family;
+	unsigned short sin_port;
+	unsigned int sin_addr;
+} sa4_serial;
+
+static const int IP4_SOCKLEN = sizeof(sa4_serial);
 static const int IP6_SOCKLEN = sizeof(struct sockaddr_in6);
 
-int	copy_addr_into_buf(struct sockaddr* src, char* dest, int size)
+int	serialize_addr(struct sockaddr* src, char* dest, int size)
 {
-	int copylen = (serv.ai->ai_family == AF_INET)
-		      ? IP4_SOCKLEN : IP6_SOCKLEN;
-	if (size < copylen) return 0;
-	memcpy(dest, src, copylen);
-	return copylen;
+	if (serv.ai->ai_family == AF_INET) {
+		if (size < IP4_SOCKLEN) return 0;
+		sa4_serial* dsa4 = (sa4_serial*) dest;
+		struct sockaddr_in* sa4 = (struct sockaddr_in*) src;
+		dsa4->sin_family = htons(sa4->sin_family);
+		dsa4->sin_port = htons(sa4->sin_port);
+		dsa4->sin_addr = htonl(sa4->sin_addr.s_addr);
+		return IP4_SOCKLEN;
+	} else {
+		if (size < IP6_SOCKLEN) return 0;
+		struct sockaddr_in6* dsa6 = (struct sockaddr_in6*) dest;
+		struct sockaddr_in6* sa6 = (struct sockaddr_in6*) src;
+		dsa6->sin6_family = htons(sa6->sin6_family);
+		dsa6->sin6_port = htons(sa6->sin6_port);
+		dsa6->sin6_flowinfo = htonl(sa6->sin6_flowinfo);
+		dsa6->sin6_scope_id = htonl(sa6->sin6_scope_id);
+		memcpy(&dsa6->sin6_addr.s6_addr,
+		       &sa6->sin6_addr.s6_addr, 16);
+		return IP6_SOCKLEN;
+	}
 }
 
-int	copy_buf_into_addr(char* src, struct sockaddr* dest, int size)
+int	deserialize_addr(char* src, struct sockaddr* dest, int size)
 {
-	switch (serv.ai->ai_family) {
-		case AF_INET:
-			if (size < IP4_SOCKLEN) return 0;
-			memcpy(dest, src, IP4_SOCKLEN);
-			struct sockaddr_in* sock4 = (void*) dest;
-			if (sock4->sin_family != AF_INET) return 0;
-			return IP4_SOCKLEN;
-		case AF_INET6:
-			if (size < IP6_SOCKLEN) return 0;
-			memcpy(dest, src, IP6_SOCKLEN);
-			struct sockaddr_in6* sock6 = (void*) dest;
-			if (sock6->sin6_family != AF_INET6) return 0;
-			return IP6_SOCKLEN;
-		default: return 0;
+	if (serv.ai->ai_family == AF_INET) {
+		if (size < IP4_SOCKLEN) return 0;
+		sa4_serial* sa4 = (sa4_serial*) src;
+		struct sockaddr_in* dsa4 = (struct sockaddr_in*) dest;
+		dsa4->sin_family = ntohs(sa4->sin_family);
+		if (dsa4->sin_family != AF_INET) return 0;
+		dsa4->sin_port = ntohs(sa4->sin_port);
+		dsa4->sin_addr.s_addr = ntohl(sa4->sin_addr);
+		return IP4_SOCKLEN;
+	} else {
+		if (size < IP6_SOCKLEN) return 0;
+		struct sockaddr_in6* sa6 = (struct sockaddr_in6*) src;
+		struct sockaddr_in6* dsa6 = (struct sockaddr_in6*) dest;
+		dsa6->sin6_family = ntohs(sa6->sin6_family);
+		if (dsa6->sin6_family != AF_INET6) return 0;
+		dsa6->sin6_port = ntohs(sa6->sin6_port);
+		dsa6->sin6_flowinfo = ntohl(sa6->sin6_flowinfo);
+		memcpy(&dsa6->sin6_addr.s6_addr,
+		       &sa6->sin6_addr.s6_addr, 16);
+		dsa6->sin6_scope_id = ntohl(sa6->sin6_scope_id);
+		return IP6_SOCKLEN;
 	}
 }
 

@@ -12,6 +12,7 @@ typedef intptr_t sockfd_t;
 #else
 # include <unistd.h>
 # include <sys/socket.h>
+# include <arpa/inet.h>
 # include <netdb.h>
 typedef int sockfd_t;
 #endif

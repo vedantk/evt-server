@@ -13,8 +13,8 @@ void	print_addrinfo(struct addrinfo* ai);
 
 int	get_sockaddr_size();
 struct sockaddr* new_sockaddr();
-int	copy_addr_into_buf(struct sockaddr* src, char* dest, int size);
-int	copy_buf_into_addr(char* src, struct sockaddr* dest, int size);
+int	serialize_addr(struct sockaddr* src, char* dest, int size);
+int	deserialize_addr(char* src, struct sockaddr* dest, int size);
 
 int get_conn_to_host(const char* host, int port, int socktype);
 int get_conn_to_addr(struct sockaddr* addr, int port, int socktype);
