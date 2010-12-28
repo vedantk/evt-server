@@ -455,10 +455,10 @@ void	cq_push_back(cli_queue* q, sockfd_t conn, short evt, void* arg)
 	pthread_mutex_lock(&q->lock);
 	if (NULL == q->head && NULL == q->tail) {
 		q->head = q->tail = p;
-	} else if (NULL == q->head || NULL == q->tail) {
+	} /* else if (NULL == q->head || NULL == q->tail) {
 		sys_error("Encountered internal memory corruption.");
 		abort();
-	} else {
+	} */ else {
 		q->tail->next = p;
 		q->tail = p;
 	}
@@ -468,8 +468,7 @@ void	cq_push_back(cli_queue* q, sockfd_t conn, short evt, void* arg)
 
 void	cq_pop_front(cli_queue* q)
 /* Aquire the queue mutex before calling this function and free the
- * head element after processing it.
- */
+ * head element after processing it. */
 {
 	client* h = q->head;
 	client* p = h->next;
