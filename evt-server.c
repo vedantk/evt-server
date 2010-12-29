@@ -170,21 +170,21 @@ struct addrinfo* get_server_addrinfo()
 
 struct addrinfo* getnetinfo(const char* host, int port, int socktype)
 {
-    struct addrinfo hints;
-    struct addrinfo* result;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = socktype;
-    hints.ai_flags = AI_PASSIVE;
-    char portstr[8];
-    snprintf(portstr, sizeof(portstr), "%d", port);
+	struct addrinfo hints;
+	struct addrinfo* result;
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = socktype;
+	hints.ai_flags = AI_PASSIVE;
+	char portstr[8];
+	snprintf(portstr, sizeof(portstr), "%d", port);
 
-    int err;
-    if ((err = getaddrinfo(host, portstr, &hints, &result)) != 0) {
-        sys_error("getaddrinfo");
-        fprintf(stderr, "getaddrinfo - %s\n", gai_strerror(err));
-    }
-    return result;
+	int err;
+	if ((err = getaddrinfo(host, portstr, &hints, &result)) != 0) {
+		sys_error("getaddrinfo");
+		fprintf(stderr, "getaddrinfo %s\n", gai_strerror(err));
+	}
+	return result;
 }
 
 void    print_addrinfo(struct addrinfo* ai)
@@ -267,6 +267,21 @@ int	deserialize_addr(char* src, struct sockaddr* dest, int size)
 		       &sa6->sin6_addr.s6_addr, 16);
 		dsa6->sin6_scope_id = ntohl(sa6->sin6_scope_id);
 		return IP6_SOCKLEN;
+	}
+}
+
+int	copy_ip_addr(struct sockaddr* src, char* buf, int size)
+{
+	if (serv.ai->ai_family == AF_INET) {
+		if (size < 4) return 0;
+		struct sockaddr_in* sa4 = (struct sockaddr_in*) src;
+		memcpy(buf, &sa4->sin_addr.s_addr, 4);
+		return 4;
+	} else {
+		if (size < 16) return 0;
+		struct sockaddr_in6* sa6 = (struct sockaddr_in6*) src;
+		memcpy(buf, &sa6->sin6_addr.s6_addr, 16);
+		return 16;
 	}
 }
 
@@ -455,10 +470,7 @@ void	cq_push_back(cli_queue* q, sockfd_t conn, short evt, void* arg)
 	pthread_mutex_lock(&q->lock);
 	if (NULL == q->head && NULL == q->tail) {
 		q->head = q->tail = p;
-	} /* else if (NULL == q->head || NULL == q->tail) {
-		sys_error("Encountered internal memory corruption.");
-		abort();
-	} */ else {
+	} else {
 		q->tail->next = p;
 		q->tail = p;
 	}
