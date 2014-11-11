@@ -1,5 +1,14 @@
 evt-server - a simple, fast server framework for C
 
+Update (11/11/2014):
+
+This project is no longer maintained!
+
+New versions of libevent have added support for creating TCP listeners
+with a single function call, making some of this work redundant. If
+you're interested in a purely epoll()-based server, you might like my
+new project: https://github.com/vedantk/simple-server.
+
 Overview
 ------------------------------------------------------------------------
 evt-server simplifies writing network servers. It uses libevent to
